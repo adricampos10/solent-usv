@@ -1,0 +1,16 @@
+# ROS 2 / colcon
+build/
+install/
+log/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Scenario results
+results/
+
+# macOS
+.DS_Store
