@@ -23,6 +23,9 @@ I'm building a simulated **autonomous surface vessel (USV)** that plans and foll
 5. **COLREGs.** Other vessels (simulated targets) and a collision avoidance layer that applies Rules 13–15 and checks CPA/TCPA.
 6. **Scenarios and CI.** YAML scenarios (start, goals, tide time, traffic, expected result), metrics with no ROS imports, and a GitHub Actions matrix with one job per scenario.
 
+### Later
+- **Tidal currents.** VRX simulates wind and waves but not current, and in the Solent the tidal stream often matters more than the wind. I plan to generate my own current field, with its strength and direction following the tide (flood, ebb, springs and neaps). A Python node will apply it to the boat as an external force through Gazebo's wrench topic, and the planner will take it into account.
+
 ## Data sources
 | Data | Source | Licence | How I use it |
 |---|---|---|---|
