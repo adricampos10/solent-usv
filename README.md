@@ -25,6 +25,12 @@ I'm building a simulated **autonomous surface vessel (USV)** that plans and foll
 
 ### Later
 - **Tidal currents.** VRX simulates wind and waves but not current, and in the Solent the tidal stream often matters more than the wind. I plan to generate my own current field, with its strength and direction following the tide (flood, ebb, springs and neaps). A Python node will apply it to the boat as an external force through Gazebo's wrench topic, and the planner will take it into account.
+- **Traffic routes and predictions from my port digital twin.** My other project, a [live map of Solent traffic](https://maritime.notjustrobotics.com), learns the usual routes of ferries and large ships from AIS and predicts where each one will be over the next 10 minutes. The plan is to learn routes on shore and predict on board:
+  - The boat downloads a versioned route package whenever it has a connection and keeps the last copy.
+  - On board, it runs the same prediction code on AIS from its own receiver, so it needs no internet and has low latency.
+  - A ROS 2 bridge node turns the data into costmap layers. Ferry and ship corridors become high-cost areas, and the Moving Prohibited Zone around large ships in the Precautionary Area becomes a forbidden area.
+  - Predictions become dynamic obstacles with future trajectories, so the planner can time a perpendicular crossing of a ferry corridor.
+  - AIS never replaces the boat's own sensors, because many small boats don't carry it.
 
 ## Data sources
 | Data | Source | Licence | How I use it |
