@@ -12,12 +12,14 @@ from jupyter_client.manager import start_new_kernel
 
 MODELS = pathlib.Path("docs/sysml")
 DIAGRAMS = MODELS / "diagrams"
-# (file name, %viz command) for each diagram I keep in the README.
+# (file name, %viz command) for each diagram I keep in the README, by Arcadia level.
 VIEWS = [
-    ("structure", "%viz --view=Tree SolentUSV::USV"),
-    ("connections", "%viz --view=Interconnection SolentUSV::USV"),
-    ("operating_mode", "%viz --view=State SolentUSV::OperatingMode"),
-    ("requirements", "%viz --view=Tree SolentUSV::milestone1Requirements"),
+    ("1_operational_context", "%viz --view=Tree OperationalAnalysis::solent"),
+    ("2_system_context", "%viz --view=Interconnection SystemAnalysis::SolentContext"),
+    ("2_system_requirements", "%viz --view=Tree SystemAnalysis::systemRequirements"),
+    ("3_logical_architecture", "%viz --view=Interconnection LogicalArchitecture::LogicalUSV"),
+    ("3_operating_mode", "%viz --view=State LogicalArchitecture::OperatingMode"),
+    ("4_physical_architecture", "%viz --view=Interconnection PhysicalArchitecture::PhysicalUSV"),
 ]
 
 
@@ -47,7 +49,7 @@ def run(client, code):
 
 
 def main():
-    manager, client = start_new_kernel(kernel_name="sysml", stderr=subprocess.DEVNULL)  # hide the kernel's Java logs
+    manager, client = start_new_kernel(kernel_name="sysml", stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # hide the kernel's Java logs
     ok = True
     try:
         for model in sorted(MODELS.glob("*.sysml")):

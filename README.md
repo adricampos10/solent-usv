@@ -32,21 +32,29 @@ I'm building a simulated **autonomous surface vessel (USV)** that plans and foll
   - Predictions become dynamic obstacles with future trajectories, so the planner can time a perpendicular crossing of a ferry corridor.
   - AIS never replaces the boat's own sensors, because many small boats don't carry it.
 
-## System design (SysML v2)
-Before I implement each milestone, I model it in **SysML v2 textual notation**, in [`docs/sysml/`](docs/sysml). Each requirement names the part that satisfies it and the test or scenario that verifies it. Because the model is plain text, it is versioned and reviewed in git like the code.
+## System design (SysML v2, Arcadia levels)
+Before I implement each milestone, I model it in **SysML v2 textual notation**, in [`docs/sysml/`](docs/sysml). I organise the model following the four levels of the Arcadia method, one file per level, linked by allocations, so every part of the design traces back to a need in the Solent:
 
-I validate the model and render its diagrams with the official OMG pilot implementation, running in Docker so I don't need Java on my Mac:
+| Level | File | Question it answers |
+|---|---|---|
+| 1. Operational analysis | [`1_operational.sysml`](docs/sysml/1_operational.sysml) | What happens on the Solent today: ferries, large ships, small craft, VTS, and the rules (COLREGs, IALA A, the Moving Prohibited Zone). The boat doesn't appear yet. |
+| 2. System analysis | [`2_system.sysml`](docs/sysml/2_system.sysml) | What the USV must do, as a black box: its functions, interfaces and system requirements, each derived from a level-1 rule. |
+| 3. Logical architecture | [`3_logical.sysml`](docs/sysml/3_logical.sysml) | Which technology-independent components do it (localisation, chart model, planner, collision avoidance...), with each system function allocated to one. |
+| 4. Physical architecture | [`4_physical.sysml`](docs/sysml/4_physical.sysml) | What implements them: hardware (the VRX WAM-V) and ROS 2 nodes. It grows milestone by milestone. |
+| Verification | [`verification.sysml`](docs/sysml/verification.sysml) | The simulation, the requirements of each milestone, and the tests that verify them. |
+
+Because the model is plain text, it is versioned and reviewed in git like the code. I validate it and render its diagrams with the official OMG pilot implementation, running in Docker so I don't need Java on my Mac:
 ```bash
 docker build -t solent-usv-sysml docker/sysml
 docker run --rm -v "$PWD":/ws solent-usv-sysml python scripts/check_sysml.py
 ```
-The script exits with an error if the model doesn't resolve, so it can run in CI. Milestone 1 diagrams:
+The script exits with an error if the model doesn't resolve, so it can run in CI.
 
-| Internal structure and connections | Operating modes |
+| Logical architecture | Operating modes |
 |---|---|
-| ![USV parts and port connections](docs/sysml/diagrams/connections.svg) | ![Operating mode state machine](docs/sysml/diagrams/operating_mode.svg) |
+| ![Logical components and their connections](docs/sysml/diagrams/3_logical_architecture.svg) | ![Operating mode state machine](docs/sysml/diagrams/3_operating_mode.svg) |
 
-More views: [part tree](docs/sysml/diagrams/structure.svg) and [milestone 1 requirements](docs/sysml/diagrams/requirements.svg).
+More views: [operational context](docs/sysml/diagrams/1_operational_context.svg), [system context](docs/sysml/diagrams/2_system_context.svg), [system requirements](docs/sysml/diagrams/2_system_requirements.svg) and [physical architecture](docs/sysml/diagrams/4_physical_architecture.svg).
 
 ## Data sources
 | Data | Source | Licence | How I use it |
