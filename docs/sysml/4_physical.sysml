@@ -47,13 +47,13 @@ package PhysicalArchitecture {
     }
 
     // ---------- ROS 2 software ----------
+    // No Nav2 and no third-party autopilot: I write the planner, guidance and
+    // control nodes myself, in Python first (an optional later milestone ports
+    // guidance and control to C++ and checks both give the same results).
     part def Ros2Node {
         attribute packageName : String;
         attribute executable : String;
-    }
-    part def Nav2Stack {
-        part plannerServer : Ros2Node;
-        part controllerServer : Ros2Node;
+        attribute implementation : String;
     }
 
     part def Computer {
@@ -63,9 +63,14 @@ package PhysicalArchitecture {
         port imu : ~Inertial;
         port telemetry : Downlink;
 
-        part nav2 : Nav2Stack;            // from milestone 2
-        part rosGzBridge : Ros2Node;      // Gazebo <-> ROS 2 topics
-        part foxgloveBridge : Ros2Node;   // telemetry to Lichtblick
+        part motionController : Ros2Node {   // milestone 2: LOS/ILOS, PID, thrust mixer
+            attribute :>> implementation = "Python";
+        }
+        part routePlanner : Ros2Node {       // milestone 3: A* on the chart grid
+            attribute :>> implementation = "Python";
+        }
+        part rosGzBridge : Ros2Node;         // Gazebo <-> ROS 2 topics
+        part foxgloveBridge : Ros2Node;      // telemetry to Lichtblick
     }
 
     // WAM-V: twin-hull USV with one fixed thruster per hull (differential thrust).
@@ -91,8 +96,8 @@ package PhysicalArchitecture {
     part physicalUsv : PhysicalUSV;
 
     // ---------- Allocation of logical components (level 3 -> level 4) ----------
-    // Still to decide: localisation (milestone 2), chart model (milestones 2-4),
-    // traffic picture and collision avoidance (milestone 5), mission manager.
-    allocate LogicalArchitecture::logicalUsv.planner to physicalUsv.computer.nav2.plannerServer;
-    allocate LogicalArchitecture::logicalUsv.controller to physicalUsv.computer.nav2.controllerServer;
+    // Still to decide: localisation (milestone 2), chart model (milestones 3-5),
+    // traffic picture and collision avoidance (milestone 6), mission manager.
+    allocate LogicalArchitecture::logicalUsv.controller to physicalUsv.computer.motionController;
+    allocate LogicalArchitecture::logicalUsv.planner to physicalUsv.computer.routePlanner;
 }

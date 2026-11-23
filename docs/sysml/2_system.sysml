@@ -77,7 +77,7 @@ package SystemAnalysis {
         actor operator : MissionOperator;
         actor traffic : Vessel[0..*];
         objective {
-            doc /* Reach the destination meeting R2.1-R2.6. */
+            doc /* Reach the destination meeting R2.1-R2.7. */
         }
     }
 
@@ -114,6 +114,13 @@ package SystemAnalysis {
         subject usv : USV;
         attribute maxDelay : TimeValue = 1 [s];
     }
+    requirement def <'R2.7'> TrackKeeping {
+        doc /* In a cross tidal stream of up to 1 m/s (about 2 knots), the USV shall
+             * keep its cross-track error below 10 m once settled on a leg. */
+        subject usv : USV;
+        attribute maxCurrent : SpeedValue = 1 [m/s];
+        attribute maxCrossTrackError : LengthValue = 10 [m];
+    }
 
     requirement systemRequirements {
         subject usv : USV;
@@ -123,6 +130,7 @@ package SystemAnalysis {
         requirement mpz : KeepOutOfMpz;
         requirement telemetry : TelemetryRate;
         requirement stop : StopCommand;
+        requirement trackKeeping : TrackKeeping;
     }
 
     // Traceability to level 1: each system requirement derives from a rule.
@@ -130,4 +138,5 @@ package SystemAnalysis {
     dependency ChannelSide to FollowIalaA;
     dependency GiveWayWhenCrossing to ColregsSteeringRules;
     dependency KeepOutOfMpz to MovingProhibitedZone;
+    dependency TrackKeeping to NarrowChannels;
 }

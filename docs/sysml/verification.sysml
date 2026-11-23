@@ -11,6 +11,13 @@ package Verification {
         attribute realTimeFactor : Real;   // simulated seconds per wall-clock second
         attribute headless : Boolean;
         part usv : PhysicalUSV;
+        part tidalCurrent : TidalCurrentGenerator;   // from milestone 5
+    }
+
+    // VRX has no current: my own Python node pushes the hull through Gazebo's
+    // wrench topic, with strength and direction following the tide.
+    part def TidalCurrentGenerator {
+        attribute maxSpeed : SpeedValue;
     }
 
     // ---------- Milestone 1: VRX in Docker ----------

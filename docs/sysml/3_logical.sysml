@@ -7,6 +7,7 @@ package LogicalArchitecture {
     // ---------- Data exchanged between components ----------
     item def PoseEstimate;   // position, heading and velocity
     item def NavigableArea;  // where the boat may go now: depth + tide + buoyage
+    item def TidalStream;    // predicted current (set and drift) at the boat's position
     item def TrafficTracks;  // other vessels and their predicted paths
     item def PlannedRoute;   // planned path to the destination
     item def MotionCommand;  // desired speed and turn rate
@@ -14,6 +15,7 @@ package LogicalArchitecture {
 
     port def Pose { out item pose : PoseEstimate; }
     port def Area { out item area : NavigableArea; }
+    port def Stream { out item stream : TidalStream; }
     port def Tracks { out item tracks : TrafficTracks; }
     port def Route { out item route : PlannedRoute; }
     port def Motion { out item command : MotionCommand; }
@@ -26,8 +28,9 @@ package LogicalArchitecture {
     }
     part def ChartModel {
         doc /* Combines bathymetry, predicted tide and seamarks into the area that
-             * is navigable right now. */
+             * is navigable right now, and predicts the tidal stream. */
         port area : Area;
+        port stream : Stream;
     }
     part def TrafficPicture {
         doc /* Tracks other vessels from AIS and predicts their paths. */
@@ -47,9 +50,12 @@ package LogicalArchitecture {
         port safe : Route;
     }
     part def MotionController {
-        doc /* Follows the route and turns it into motion commands. */
+        doc /* Follows the route: LOS guidance with integral action, plus a
+             * feedforward course to steer from the predicted tidal stream; then
+             * heading and speed control and thrust allocation. */
         port pose : ~Pose;
         port route : ~Route;
+        port stream : ~Stream;
         port mode : ~Mode;
         port command : Motion;
     }
@@ -72,6 +78,7 @@ package LogicalArchitecture {
         connect localisation.pose to avoidance.pose;
         connect localisation.pose to controller.pose;
         connect chart.area to planner.area;
+        connect chart.stream to controller.stream;
         connect traffic.tracks to avoidance.tracks;
         connect planner.route to avoidance.planned;
         connect avoidance.safe to controller.route;
@@ -92,7 +99,7 @@ package LogicalArchitecture {
 
     // ---------- Behaviour of the mission manager ----------
     // Milestone 1 uses Idle, Manual and Stopped; autonomous modes arrive
-    // with Nav2 in milestone 2 and collision avoidance in milestone 5.
+    // with my own guidance in milestone 2 and collision avoidance in milestone 6.
     state def OperatingMode {
         entry; then Idle;
 

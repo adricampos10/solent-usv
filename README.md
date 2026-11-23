@@ -1,6 +1,6 @@
 # solent-usv
 
-I'm building a simulated **autonomous surface vessel (USV)** that plans and follows routes across the **Solent** (Portsmouth, Southampton and the Isle of Wight) with **ROS 2 Jazzy + Nav2**. It runs in the **VRX** (Virtual RobotX) simulator on **Gazebo Harmonic**, and every route plan uses real open data: depth, tide height and buoyage.
+I'm building a simulated **autonomous surface vessel (USV)** that plans and follows routes across the **Solent** (Portsmouth, Southampton and the Isle of Wight). It runs on **ROS 2 Jazzy** in the **VRX** (Virtual RobotX) simulator on **Gazebo Harmonic**. I write the whole guidance, navigation and control (GNC) stack myself, and every route plan uses real open data: depth, tide height and buoyage.
 
 > Work in progress.
 
@@ -8,29 +8,32 @@ I'm building a simulated **autonomous surface vessel (USV)** that plans and foll
 > **Not for navigation.** This is a simulation and portfolio project. The bathymetry, seamarks and tide data it uses are coarse, incomplete and possibly out of date, and I process them in simplified ways. Never use anything in this repository to plan or navigate a real vessel. Use official charts (UKHO/ADMIRALTY), Notices to Mariners and proper passage planning.
 
 ## What I'm building
-- A WAM-V from VRX in a georeferenced Solent world, driven by Nav2.
-- A costmap built from real bathymetry: anywhere shallower than the boat's draft plus a safety margin is a no-go area.
-- Tide-aware planning: charted depth plus predicted tide height, so a route that is open at high water is blocked at low water.
-- Routes that respect IALA region A buoyage (port and starboard lateral marks, cardinal marks) taken from OpenSeaMap.
-- Collision avoidance with other vessels following the COLREGs (head-on, crossing, overtaking).
-- A scenario suite with metrics and GitHub Actions CI, as in my [warehouse-nav2](https://github.com/adricampos10/warehouse-nav2) project.
+- A WAM-V from VRX in a georeferenced Solent world.
+- My own GNC stack, with no Nav2 and no third-party autopilot, because I want to understand every layer from the inside: an A\* route planner on the chart, line-of-sight (LOS) guidance, heading and speed PID loops, and a thrust mixer for the two thrusters. I already used Nav2 in my [warehouse-nav2](https://github.com/adricampos10/warehouse-nav2) project; a boat is a different problem, with large inertia, no brakes, and drift from wind and tidal current.
+- Chart-aware planning from real bathymetry and predicted tide: anywhere shallower than the boat's draft plus a safety margin is a no-go area, so a route that is open at high water is blocked at low water.
+- Tidal current compensation: the guidance combines a feedforward course to steer, worked out from the predicted tidal stream, with integral LOS for whatever the prediction gets wrong.
+- Avoidance of predicted traffic: ferry and ship trajectories from my other project, Solent live traffic, plus the COLREGs and the Moving Prohibited Zone around large ships.
+- YAML scenarios with metrics and GitHub Actions CI, growing with every milestone.
+
+I write everything in Python first. Once the whole demo works, I may port the guidance and control loop to C++ and check that both versions give the same results.
 
 ## Roadmap
 1. **VRX in Docker.** The VRX `jazzy` branch (ROS 2 Jazzy + Gazebo Harmonic) runs headless in Docker on my Mac, with a WAM-V that I can drive and watch in Lichtblick through `foxglove_bridge`.
-2. **Bathymetry costmap.** I download an EMODnet DTM tile for the Solent and turn it into a Nav2 map where depth < draft + margin is lethal. Pure Python, unit-tested with pytest.
-3. **Tides.** I add the predicted tide height to the charted depth (both referenced to chart datum, roughly LAT), so the costmap changes with time. A scenario checks that the same route passes at high water and fails at low water.
-4. **IALA A buoyage.** Lateral and cardinal marks from OpenSeaMap become costmap constraints, so the boat keeps the correct side of each channel.
-5. **COLREGs.** Other vessels (simulated targets) and a collision avoidance layer that applies Rules 13–15 and checks CPA/TCPA.
-6. **Scenarios and CI.** YAML scenarios (start, goals, tide time, traffic, expected result), metrics with no ROS imports, and a GitHub Actions matrix with one job per scenario.
-
-### Later
-- **Tidal currents.** VRX simulates wind and waves but not current, and in the Solent the tidal stream often matters more than the wind. I plan to generate my own current field, with its strength and direction following the tide (flood, ebb, springs and neaps). A Python node will apply it to the boat as an external force through Gazebo's wrench topic, and the planner will take it into account.
-- **Traffic routes and predictions from Solent live traffic.** My other project, [Solent live traffic](https://maritime.notjustrobotics.com), a live map of the area, learns the usual routes of ferries and large ships from AIS and predicts where each one will be over the next 10 minutes. The plan is to learn routes on shore and predict on board:
-  - The boat downloads a versioned route package whenever it has a connection and keeps the last copy.
-  - On board, it runs the same prediction code on AIS from its own receiver, so it needs no internet and has low latency.
-  - A ROS 2 bridge node turns the data into costmap layers. Ferry and ship corridors become high-cost areas, and the Moving Prohibited Zone around large ships in the Precautionary Area becomes a forbidden area.
-  - Predictions become dynamic obstacles with future trajectories, so the planner can time a perpendicular crossing of a ferry corridor.
-  - AIS never replaces the boat's own sensors, because many small boats don't carry it.
+2. **Guidance and control.** A thrust mixer, heading and speed PID loops, and LOS guidance between waypoints, in Python and unit-tested with pytest. The boat follows a straight track and a dog-leg in calm water. The first scenarios and the CI start here.
+3. **Chart and A\* planner.** I download an EMODnet DTM tile for the Solent and turn it into a cost grid where depth < draft + margin is forbidden. My own A\* plans a route across it, for example from Portsmouth to Cowes without touching the shallows.
+4. **Tides.** I add the predicted tide height to the charted depth (both referenced to chart datum, roughly LAT), so the grid changes with time. A scenario checks that the same route passes at high water and fails at low water.
+5. **Tidal currents.** VRX simulates wind and waves but not current, and in the Solent the tidal stream often matters more than the wind. I generate my own current field, with strength and direction following the tide (flood, ebb, springs and neaps), and a Python node applies it to the boat as an external force through Gazebo's wrench topic. Then I compare three ways of crossing the same current:
+   - **Homing**, with the bow always pointed at the destination: the boat drifts down-tide and follows a curve.
+   - **Plain LOS**: the boat stays parallel to the track, but offset from it.
+   - **Feedforward course to steer + integral LOS**: the boat goes straight down the track and converges sooner. I learned to work out the course to steer as a Day Skipper, with the tidal vector triangle; here the controller does the same with the predicted current.
+6. **Traffic and COLREGs.** First, simulated targets and the steering rules (Rules 13–15) with CPA/TCPA checks. Then predicted traffic from Solent live traffic:
+   - My other project, [Solent live traffic](https://maritime.notjustrobotics.com), a live map of the area, learns the usual routes of ferries and large ships from AIS and predicts where each one will be over the next 10 minutes. The plan is to learn routes on shore and predict on board.
+   - The boat downloads a versioned route package whenever it has a connection and keeps the last copy. On board, it runs the same prediction code on AIS from its own receiver, so it needs no internet and has low latency.
+   - A ROS 2 bridge node turns the data into layers of the cost grid. Ferry and ship corridors become high-cost areas, and the Moving Prohibited Zone around large ships in the Precautionary Area becomes forbidden.
+   - Predictions become moving obstacles with future trajectories, so the planner can time a perpendicular crossing of a ferry corridor, following Rules 9 (narrow channels) and 10 (traffic separation schemes).
+   - AIS never replaces the boat's own sensors, because many small boats don't carry it.
+7. **IALA A buoyage** *(optional)*. Lateral and cardinal marks from OpenSeaMap become constraints, so the boat keeps the correct side of each channel.
+8. **C++ port** *(optional)*. I port LOS/ILOS guidance, the PID loops and the thrust mixer to C++ (rclcpp), and run the same test cases on both versions to check they give the same results.
 
 ## System design (SysML v2, Arcadia levels)
 Before I implement each milestone, I model it in **SysML v2 textual notation**, in [`docs/sysml/`](docs/sysml). I organise the model following the four levels of the Arcadia method, one file per level, linked by allocations, so every part of the design traces back to a need in the Solent:
