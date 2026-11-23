@@ -69,6 +69,66 @@ The 3D view draws the WAM-V from its URDF on `/wamv/robot_description`; `foxglov
 
 ![The WAM-V turning in Lichtblick, with thrust, yaw rate and GNSS fix](docs/img/milestone1_lichtblick.jpg)
 
+## The physics behind the navigation
+How the boat will hold a track across a tidal stream, which is what milestones 2 and 5 implement. It is the same reasoning as working out a course to steer on a chart, written as a guidance law.
+
+### Heading is not course
+- **Heading (ψ)** is where the bow points. It is what the heading controller steers.
+- **Course over ground (χ)** is where the boat actually goes over the seabed.
+
+With no current they are the same. With a cross current the boat crabs: it points one way and travels another. The guidance law works out the **desired heading** ψ<sub>d</sub> that makes the course over ground follow the track.
+
+### The guidance law
+```math
+\psi_d \;=\; \chi_p \;-\; \arcsin\!\left(\frac{v_\perp}{U}\right) \;-\; \arctan\!\left(\frac{e + \kappa \int e \, dt}{\Delta}\right)
+```
+
+| Symbol | Meaning |
+|---|---|
+| χ<sub>p</sub> | Track angle: the direction of the leg from one waypoint to the next |
+| v<sub>⊥</sub> | Component of the predicted current across the track, positive when it pushes the boat to starboard |
+| U | Boat speed through the water |
+| e | Cross-track error: distance from the track, positive to starboard |
+| Δ | Look-ahead distance along the track |
+| κ | Integral gain |
+
+Angles are nautical (clockwise, positive to starboard), so both minus signs mean the same thing: steer into the current and back towards the track. Each term fixes a different problem.
+
+**1. Track angle.** With no current and the boat on the line, pointing along the leg is enough.
+
+**2. Feedforward: the course to steer.** It corrects for the current *before* any error appears, using the predicted tidal stream. To stay on the line, the sideways part of the boat's velocity through the water has to cancel the current across the track. Pointing an angle β into the current gives a sideways velocity of U·sin β, so:
+```math
+U \sin\beta = v_\perp \quad\Rightarrow\quad \beta = \arcsin\!\left(\frac{v_\perp}{U}\right)
+```
+This is the tidal vector triangle from passage planning. At U = 3 m/s (about 6 knots) in a 1 m/s (about 2 knots) cross current, β = asin(1/3) ≈ 19.5° into the current. Speed over the ground along the track becomes U·cos β plus the along-track part of the current, and the speed controller deals with that. If the cross current is as fast as the boat (v<sub>⊥</sub> ≥ U), no heading can hold the track: the code has to detect it and flag it, and the planner should avoid that leg at that state of the tide. The term is only as good as the prediction: if the real stream is 1.2 m/s instead of 1.0, the boat needs 23.6° and gets 19.5°.
+
+**3. Line-of-sight (LOS) guidance.** The feedforward keeps the boat *parallel* to the track; LOS brings it back onto it. The boat aims at a point a distance Δ ahead on the track, which gives a correction of atan(e/Δ) towards the line. At e = 10 m and Δ = 40 m that is 14°, and it fades smoothly to zero as the boat reaches the line. Δ is the main tuning knob: short converges fast but can oscillate, long is smooth but slow. A usual starting point is 2 to 5 boat lengths, 10 to 25 m for the WAM-V.
+
+**4. Integral LOS (ILOS).** With a forecast error of 4°, the boat settles off the track at the distance where the LOS correction makes up those 4°, and stays there. The integral of the cross-track error keeps growing while that offset lasts, until it covers the missing angle and the error goes back to zero. It mops up any steady error: a wrong tidal forecast, leeway from the wind, model errors. Its risk is windup: after a large error, such as a turn at a waypoint or a collision-avoidance manoeuvre, it can overshoot the line. So I only integrate close to the track, clamp the integral, and reset it on each new leg.
+
+### A worked example
+Track 090° (due east), 1 m/s current setting south (pushing the boat to starboard), U = 3 m/s, boat 10 m to starboard of the line, Δ = 40 m:
+
+| Term | Value | Desired heading |
+|---|---|---|
+| Track angle | 090° | 090° |
+| Feedforward | −19.5° | 070.5° |
+| LOS (e = 10 m) | −14° | **056.5°** |
+
+The boat heads 056.5° and closes the line. Once on it, the LOS term drops to zero and the heading settles at **070.5°**: the boat crabs, but its course over ground is exactly 090°. If the forecast is off, the integral adds the missing degrees.
+
+### Each term on its own
+This is what milestone 5 compares in simulation:
+
+| Method | In a cross current |
+|---|---|
+| Homing (bow always at the destination) | Swept down-tide; the path is a curve |
+| LOS alone | Parallel to the track but offset from it, for good |
+| LOS + integral | Back on the track, but slowly: it has to learn the whole current |
+| Feedforward + LOS + integral | Straight from the start; the integral only trims |
+
+In the Solent the stream changes with the tide during a passage, so the feedforward is recomputed all the time from the predicted current at the boat's position and the current time, and the integral only has a small residual to follow.
+
 ## System design (SysML v2, Arcadia levels)
 Before I implement each milestone, I model it in **SysML v2 textual notation**, in [`docs/sysml/`](docs/sysml). I organise the model following the four levels of the Arcadia method, one file per level, linked by allocations, so every part of the design traces back to a need in the Solent:
 
