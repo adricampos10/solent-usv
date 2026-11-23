@@ -32,6 +32,22 @@ I'm building a simulated **autonomous surface vessel (USV)** that plans and foll
   - Predictions become dynamic obstacles with future trajectories, so the planner can time a perpendicular crossing of a ferry corridor.
   - AIS never replaces the boat's own sensors, because many small boats don't carry it.
 
+## System design (SysML v2)
+Before I implement each milestone, I model it in **SysML v2 textual notation**, in [`docs/sysml/`](docs/sysml). Each requirement names the part that satisfies it and the test or scenario that verifies it. Because the model is plain text, it is versioned and reviewed in git like the code.
+
+I validate the model and render its diagrams with the official OMG pilot implementation, running in Docker so I don't need Java on my Mac:
+```bash
+docker build -t solent-usv-sysml docker/sysml
+docker run --rm -v "$PWD":/ws solent-usv-sysml python scripts/check_sysml.py
+```
+The script exits with an error if the model doesn't resolve, so it can run in CI. Milestone 1 diagrams:
+
+| Internal structure and connections | Operating modes |
+|---|---|
+| ![USV parts and port connections](docs/sysml/diagrams/connections.svg) | ![Operating mode state machine](docs/sysml/diagrams/operating_mode.svg) |
+
+More views: [part tree](docs/sysml/diagrams/structure.svg) and [milestone 1 requirements](docs/sysml/diagrams/requirements.svg).
+
 ## Data sources
 | Data | Source | Licence | How I use it |
 |---|---|---|---|
