@@ -17,11 +17,11 @@ DIAGRAMS = MODELS / "diagrams"
 # (file name, %viz command) for each diagram I keep in the README, by Arcadia level.
 VIEWS = [
     ("1_operational_context", "%viz --view=Tree OperationalAnalysis::solent"),
-    ("2_system_context", "%viz --view=Interconnection --style=LR --style=ORTHOLINE SystemAnalysis::SolentContext"),
+    ("2_system_context", "%viz --view=Interconnection SystemAnalysis::SolentContext"),
     ("2_system_requirements", "%viz --view=Tree SystemAnalysis::systemRequirements"),
-    ("3_logical_architecture", "%viz --view=Interconnection --style=LR --style=ORTHOLINE LogicalArchitecture::LogicalUSV"),
+    ("3_logical_architecture", "%viz --view=Interconnection LogicalArchitecture::LogicalUSV"),
     ("3_operating_mode", "%viz --view=State LogicalArchitecture::OperatingMode"),
-    ("4_physical_architecture", "%viz --view=Interconnection --style=LR --style=ORTHOLINE PhysicalArchitecture::PhysicalUSV"),
+    ("4_physical_architecture", "%viz --view=Interconnection PhysicalArchitecture::PhysicalUSV"),
 ]
 
 
@@ -61,7 +61,7 @@ def spaced(svg):
     if start < 0 or end < 0 or "skinparam ranksep 10" not in svg:
         return svg   # only the interconnection views are this tight
     source = html.unescape(svg[start:end + len("@enduml")])
-    source = source.replace("skinparam ranksep 10", "skinparam ranksep 140\nskinparam nodesep 60")
+    source = source.replace("skinparam ranksep 10", "skinparam ranksep 60\nskinparam nodesep 220")
     result = subprocess.run(
         ["java", "-cp", PLANTUML_JAR, "net.sourceforge.plantuml.Run", "-tsvg", "-pipe"],
         input=source, capture_output=True, text=True, check=True)
