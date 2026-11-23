@@ -1,0 +1,68 @@
+<?xml version="1.0" ?>
+<!-- Open water off Spithead, for milestone 1. No shore, no buoys, nothing
+     downloaded from Gazebo Fuel: only the physics, the sensors my WAM-V
+     carries (IMU and GNSS) and VRX's wind and waves. The bathymetry and the
+     real coastline arrive in milestone 3.
+
+     Run with: ros2 launch vrx_gz competition.launch.py headless:=True \
+               world:=/ws/worlds/solent_open_water.sdf urdf:=/ws/models/wamv_solent.urdf.xacro -->
+<sdf version="1.9">
+  <world name="solent_open_water">
+
+    <physics name="4ms" type="dart">
+      <max_step_size>0.004</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu"/>
+    <plugin filename="gz-sim-navsat-system" name="gz::sim::systems::NavSat"/>
+
+    <!-- The world origin is in Spithead, east of Portsmouth Harbour entrance.
+         x points east and y north (ENU). -->
+    <spherical_coordinates>
+      <surface_model>EARTH_WGS84</surface_model>
+      <world_frame_orientation>ENU</world_frame_orientation>
+      <latitude_deg>50.7700</latitude_deg>
+      <longitude_deg>-1.1000</longitude_deg>
+      <elevation>0.0</elevation>
+      <heading_deg>0.0</heading_deg>
+    </spherical_coordinates>
+
+    <light type="directional" name="sun">
+      <pose>0 0 10 0 0 0</pose>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <!-- Wind on the hull (VRX USVWind). Calm for the smoke test, so the
+         checks measure thrust and not the weather. -->
+    <plugin filename="libUSVWind.so" name="vrx::USVWind">
+      <wind_obj>
+        <name>wamv</name>
+        <link_name>wamv/base_link</link_name>
+        <coeff_vector>.5 .5 .33</coeff_vector>
+      </wind_obj>
+      <wind_direction>240</wind_direction>
+      <wind_mean_velocity>0.0</wind_mean_velocity>
+      <var_wind_gain_constants>0</var_wind_gain_constants>
+      <var_wind_time_constants>2</var_wind_time_constants>
+      <random_seed>10</random_seed>
+      <update_rate>10</update_rate>
+      <topic_wind_speed>/vrx/debug/wind/speed</topic_wind_speed>
+      <topic_wind_direction>/vrx/debug/wind/direction</topic_wind_direction>
+    </plugin>
+
+    <!-- Wave field read by the hull's buoyancy plugin: a small swell. -->
+    <plugin filename="libPublisherPlugin.so" name="vrx::PublisherPlugin">
+      <message type="gz.msgs.Param" topic="/vrx/wavefield/parameters" every="2.0">
+        params { key: "direction" value { type: DOUBLE double_value: 0.0 } }
+        params { key: "gain"      value { type: DOUBLE double_value: 0.3 } }
+        params { key: "period"    value { type: DOUBLE double_value: 5 } }
+        params { key: "steepness" value { type: DOUBLE double_value: 0 } }
+      </message>
+    </plugin>
+
+  </world>
+</sdf>

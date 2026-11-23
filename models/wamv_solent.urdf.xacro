@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<!-- My WAM-V for the Solent: VRX's hull, dynamics and two aft thrusters, with
+     only the sensors in my physical architecture (GNSS and IMU). VRX's default
+     boat also carries three cameras, a 3D lidar, a pinger and a ball shooter;
+     without a GPU the cameras alone slow the simulation to under 2 % of real
+     time. It also publishes the hull's ground-truth pose for the smoke test.
+
+     VRX's launch passes these arguments to every robot file; I accept them
+     but ignore the sensor and lock settings. -->
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="WAM-V">
+  <xacro:arg name="namespace" default="wamv"/>
+  <xacro:arg name="locked" default="false"/>
+  <xacro:arg name="vrx_sensors_enabled" default="false"/>
+  <xacro:arg name="thruster_config" default="H"/>
+  <xacro:arg name="macros_file" default="$(find wamv_gazebo)/urdf/macros.xacro"/>
+
+  <xacro:property name="thruster_namespace" value="thrusters/" scope="global"/>
+  <xacro:property name="camera_namespace" value="cameras/" scope="global"/>
+  <xacro:property name="sensor_namespace" value="sensors/" scope="global"/>
+  <xacro:property name="acoustic_namespace" value="acoustics/" scope="global"/>
+  <xacro:property name="shooter_namespace" value="shooters/" scope="global"/>
+  <xacro:property name="namespace" value="$(arg namespace)" scope="global"/>
+
+  <!-- Hull, buoyancy, hydrodynamics, wind and waves from VRX -->
+  <xacro:include filename="$(find wamv_gazebo)/urdf/wamv_gazebo.xacro"/>
+  <xacro:wamv_gazebo thruster_layout="$(find wamv_gazebo)/urdf/thruster_layouts/wamv_aft_thrusters.xacro"/>
+
+  <xacro:include filename="$(find wamv_description)/urdf/battery.xacro"/>
+  <xacro:battery prefix="left" position="0 1 0.45" orientation="0 0 0"/>
+  <xacro:battery prefix="right" position="0 -1 0.45" orientation="0 0 0"/>
+
+  <!-- Sensors in docs/sysml/4_physical.sysml -->
+  <xacro:wamv_gps name="gps_wamv" x="-0.85"/>
+  <xacro:wamv_imu name="imu_wamv" y="-0.2"/>
+
+  <gazebo>
+    <!-- Ground-truth pose of the hull (and sensor frames) on /wamv/pose -->
+    <plugin filename="gz-sim-pose-publisher-system" name="gz::sim::systems::PosePublisher">
+      <publish_link_pose>false</publish_link_pose>
+      <publish_sensor_pose>true</publish_sensor_pose>
+      <publish_collision_pose>false</publish_collision_pose>
+      <publish_visual_pose>false</publish_visual_pose>
+      <publish_nested_model_pose>false</publish_nested_model_pose>
+      <publish_model_pose>true</publish_model_pose>
+      <use_pose_vector_msg>true</use_pose_vector_msg>
+      <static_publisher>false</static_publisher>
+    </plugin>
+    <plugin filename="gz-sim-joint-state-publisher-system" name="gz::sim::systems::JointStatePublisher"/>
+  </gazebo>
+</robot>

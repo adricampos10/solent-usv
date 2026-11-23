@@ -1,0 +1,178 @@
+{
+  "configById": {
+    "3D!usv": {
+      "cameraState": {
+        "distance": 18,
+        "perspective": true,
+        "phi": 50,
+        "thetaOffset": 45,
+        "targetOffset": [
+          0,
+          0,
+          0
+        ],
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "fovy": 45,
+        "near": 0.01,
+        "far": 5000
+      },
+      "followMode": "follow-position",
+      "followTf": "wamv",
+      "scene": {
+        "transforms": {
+          "showLabel": false,
+          "axisScale": 2,
+          "lineWidth": 2
+        }
+      },
+      "transforms": {
+        "frame:solent_open_water": {
+          "visible": false
+        },
+        "frame:wamv": {
+          "visible": false
+        },
+        "frame:wamv/wamv/base_link": {
+          "visible": false
+        },
+        "frame:wamv/wamv/base_link/contact_sensor": {
+          "visible": false
+        },
+        "frame:wamv/wamv/gps_wamv_link": {
+          "visible": false
+        },
+        "frame:wamv/wamv/gps_wamv_link/navsat": {
+          "visible": false
+        },
+        "frame:wamv/wamv/imu_wamv_link": {
+          "visible": false
+        },
+        "frame:wamv/wamv/imu_wamv_link/imu_wamv_sensor": {
+          "visible": false
+        },
+        "frame:wamv/wamv/left_engine_link": {
+          "visible": false
+        },
+        "frame:wamv/wamv/left_propeller_link": {
+          "visible": false
+        },
+        "frame:wamv/wamv/right_engine_link": {
+          "visible": false
+        },
+        "frame:wamv/wamv/right_propeller_link": {
+          "visible": false
+        },
+        "frame:wamv/wamv/left_battery_link": {
+          "visible": false
+        },
+        "frame:wamv/wamv/right_battery_link": {
+          "visible": false
+        }
+      },
+      "topics": {},
+      "layers": {
+        "grid": {
+          "visible": true,
+          "frameId": "solent_open_water",
+          "layerId": "foxglove.Grid",
+          "size": 200,
+          "divisions": 40,
+          "color": "#4fa3d1aa",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        },
+        "urdf": {
+          "visible": true,
+          "layerId": "foxglove.Urdf",
+          "instanceId": "urdf",
+          "label": "WAM-V",
+          "sourceType": "topic",
+          "topic": "/wamv/robot_description",
+          "framePrefix": "wamv/",
+          "displayMode": "visual",
+          "fallbackColor": "#ffffff",
+          "order": 2
+        }
+      }
+    },
+    "RawMessages!gps": {
+      "topicPath": "/wamv/sensors/gps/gps/fix",
+      "diffEnabled": false,
+      "expansion": "all"
+    },
+    "Plot!thrust": {
+      "title": "Thrust (N)",
+      "paths": [
+        {
+          "value": "/wamv/thrusters/left/thrust.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "left thrust"
+        },
+        {
+          "value": "/wamv/thrusters/right/thrust.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "right thrust"
+        }
+      ],
+      "showLegend": true,
+      "followingViewWidth": 60,
+      "isSynced": true
+    },
+    "Plot!yaw": {
+      "title": "Yaw rate (rad/s, counter-clockwise +)",
+      "paths": [
+        {
+          "value": "/wamv/sensors/imu/imu/data.angular_velocity.z",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "yaw rate"
+        }
+      ],
+      "showLegend": true,
+      "followingViewWidth": 60,
+      "isSynced": true
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {},
+  "playbackConfig": {
+    "speed": 1
+  },
+  "layout": {
+    "first": "3D!usv",
+    "second": {
+      "first": "Plot!thrust",
+      "second": {
+        "first": "Plot!yaw",
+        "second": "RawMessages!gps",
+        "direction": "column",
+        "splitPercentage": 50
+      },
+      "direction": "column",
+      "splitPercentage": 33
+    },
+    "direction": "row",
+    "splitPercentage": 65
+  }
+}

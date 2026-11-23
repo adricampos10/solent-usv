@@ -51,8 +51,11 @@ package LogicalArchitecture {
     }
     part def MotionController {
         doc /* Follows the route: LOS guidance with integral action, plus a
-             * feedforward course to steer from the predicted tidal stream; then
-             * heading and speed control and thrust allocation. */
+             * feedforward course to steer from the predicted tidal stream (the
+             * stream corrects the desired heading, not the forces); then
+             * heading and speed control, which ask for a surge force and a yaw
+             * moment; then actuator allocation, the only step that depends on
+             * the hull and its actuators. */
         port pose : ~Pose;
         port route : ~Route;
         port stream : ~Stream;

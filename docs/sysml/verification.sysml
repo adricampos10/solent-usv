@@ -62,7 +62,7 @@ package Verification {
     satisfy milestone1Requirements by milestone1;
 
     // Smoke test (scripts/run_smoke_test.sh): starts the headless simulation,
-    // applies thrust and checks the motion from odometry. R1.5 is checked by eye.
+    // applies thrust and checks the motion from the ground-truth pose.
     verification def SmokeTest {
         subject sim : SimulationStack;
         objective {
@@ -70,6 +70,14 @@ package Verification {
             verify milestone1Requirements.performance;
             verify milestone1Requirements.forward;
             verify milestone1Requirements.turn;
+        }
+    }
+
+    // R1.5 is checked by eye: scripts/run_sim_viz.sh + scripts/run_viewer.sh.
+    verification def VisualInspection {
+        subject sim : SimulationStack;
+        objective {
+            verify milestone1Requirements.visualisation;
         }
     }
 }

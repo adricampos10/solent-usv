@@ -9,10 +9,11 @@ package PhysicalArchitecture {
     private import LogicalArchitecture::*;
 
     // ---------- Physical interfaces ----------
-    // Thrust command to one thruster, normalised to [-1, 1].
+    // Thrust command to one thruster, in newtons: up to about 2354 N ahead and
+    // 1000 N astern (VRX sets the forward limit; astern is Gazebo's default).
     // In VRX: ROS 2 topic /wamv/thrusters/<side>/thrust (std_msgs/Float64).
     port def Thrust {
-        out attribute thrust : Real;
+        out attribute thrust : ForceValue;
     }
     // Position fix (sensor_msgs/NavSatFix).
     port def Fix {
@@ -63,7 +64,7 @@ package PhysicalArchitecture {
         port imu : ~Inertial;
         port telemetry : Downlink;
 
-        part motionController : Ros2Node {   // milestone 2: LOS/ILOS, PID, thrust mixer
+        part motionController : Ros2Node {   // milestone 2: LOS/ILOS, PID, allocation
             attribute :>> implementation = "Python";
         }
         part routePlanner : Ros2Node {       // milestone 3: A* on the chart grid
