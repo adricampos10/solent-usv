@@ -19,31 +19,31 @@ package SystemAnalysis {
         doc /* Position, course and identity of another vessel. */
     }
 
-    port def OperatorLinkPort {
+    port def OperatorLink {
         in item mission : Mission;
         out item telemetry : Telemetry;
     }
-    port def AisPort {
+    port def Ais {
         in item report : AisReport;
     }
 
     // ---------- The system as a black box ----------
     part def USV {
         attribute draft : LengthValue;
-        port operatorLink : OperatorLinkPort;
-        port ais : AisPort;
+        port link : OperatorLink;
+        port ais : Ais;
     }
 
     // System context: the boat placed in the operational world of level 1.
     part def SolentContext {
         part usv : USV;
         part operator : MissionOperator {
-            port link : ~OperatorLinkPort;
+            port link : ~OperatorLink;
         }
         part traffic : Vessel[0..*] {
-            port ais : ~AisPort;
+            port ais : ~Ais;
         }
-        connect operator.link to usv.operatorLink;
+        connect operator.link to usv.link;
         connect traffic.ais to usv.ais;
     }
 

@@ -11,20 +11,20 @@ package PhysicalArchitecture {
     // ---------- Physical interfaces ----------
     // Thrust command to one thruster, normalised to [-1, 1].
     // In VRX: ROS 2 topic /wamv/thrusters/<side>/thrust (std_msgs/Float64).
-    port def ThrustCmdPort {
+    port def Thrust {
         out attribute thrust : Real;
     }
     // Position fix (sensor_msgs/NavSatFix).
-    port def FixPort {
+    port def Fix {
         out attribute latitude : Real;
         out attribute longitude : Real;
     }
     // Attitude and angular rate (sensor_msgs/Imu).
-    port def ImuPort {
+    port def Inertial {
         out attribute yawRate : AngularVelocityValue;
     }
     // Telemetry to shore; in simulation, foxglove_bridge on a WebSocket.
-    port def TelemetryPort {
+    port def Downlink {
         out attribute pose : Real[3];
     }
 
@@ -34,16 +34,16 @@ package PhysicalArchitecture {
         attribute mass : MassValue;
     }
     part def Thruster {
-        port cmd : ~ThrustCmdPort;
+        port cmd : ~Thrust;
     }
     part def GnssReceiver {
-        port fix : FixPort;
+        port fix : Fix;
     }
     part def Imu {
-        port imu : ImuPort;
+        port imu : Inertial;
     }
     part def RadioLink {
-        port telemetry : ~TelemetryPort;
+        port telemetry : ~Downlink;
     }
 
     // ---------- ROS 2 software ----------
@@ -57,11 +57,11 @@ package PhysicalArchitecture {
     }
 
     part def Computer {
-        port leftThrust : ThrustCmdPort;
-        port rightThrust : ThrustCmdPort;
-        port fix : ~FixPort;
-        port imu : ~ImuPort;
-        port telemetry : TelemetryPort;
+        port leftThrust : Thrust;
+        port rightThrust : Thrust;
+        port fix : ~Fix;
+        port imu : ~Inertial;
+        port telemetry : Downlink;
 
         part nav2 : Nav2Stack;            // from milestone 2
         part rosGzBridge : Ros2Node;      // Gazebo <-> ROS 2 topics

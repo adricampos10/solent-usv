@@ -5,58 +5,58 @@ package LogicalArchitecture {
     private import SystemAnalysis::*;
 
     // ---------- Data exchanged between components ----------
-    item def Pose;           // position, heading and velocity
+    item def PoseEstimate;   // position, heading and velocity
     item def NavigableArea;  // where the boat may go now: depth + tide + buoyage
-    item def Tracks;         // other vessels and their predicted paths
-    item def Route;          // planned path to the destination
+    item def TrafficTracks;  // other vessels and their predicted paths
+    item def PlannedRoute;   // planned path to the destination
     item def MotionCommand;  // desired speed and turn rate
     item def ModeCommand;    // manual, autonomous, stop
 
-    port def PosePort { out item pose : Pose; }
-    port def AreaPort { out item area : NavigableArea; }
-    port def TracksPort { out item tracks : Tracks; }
-    port def RoutePort { out item route : Route; }
-    port def MotionPort { out item command : MotionCommand; }
-    port def ModePort { out item mode : ModeCommand; }
+    port def Pose { out item pose : PoseEstimate; }
+    port def Area { out item area : NavigableArea; }
+    port def Tracks { out item tracks : TrafficTracks; }
+    port def Route { out item route : PlannedRoute; }
+    port def Motion { out item command : MotionCommand; }
+    port def Mode { out item mode : ModeCommand; }
 
     // ---------- Logical components ----------
     part def Localisation {
         doc /* Estimates the boat's pose from satellite positioning and inertial data. */
-        port pose : PosePort;
+        port pose : Pose;
     }
     part def ChartModel {
         doc /* Combines bathymetry, predicted tide and seamarks into the area that
              * is navigable right now. */
-        port area : AreaPort;
+        port area : Area;
     }
     part def TrafficPicture {
         doc /* Tracks other vessels from AIS and predicts their paths. */
-        port tracks : TracksPort;
+        port tracks : Tracks;
     }
     part def RoutePlanner {
         doc /* Plans a route through the navigable area to the destination. */
-        port pose : ~PosePort;
-        port area : ~AreaPort;
-        port route : RoutePort;
+        port pose : ~Pose;
+        port area : ~Area;
+        port route : Route;
     }
     part def CollisionAvoidance {
         doc /* Adjusts the route around other vessels following the COLREGs. */
-        port pose : ~PosePort;
-        port tracks : ~TracksPort;
-        port routeIn : ~RoutePort;
-        port routeOut : RoutePort;
+        port pose : ~Pose;
+        port tracks : ~Tracks;
+        port planned : ~Route;
+        port safe : Route;
     }
     part def MotionController {
         doc /* Follows the route and turns it into motion commands. */
-        port pose : ~PosePort;
-        port route : ~RoutePort;
-        port mode : ~ModePort;
-        port command : MotionPort;
+        port pose : ~Pose;
+        port route : ~Route;
+        port mode : ~Mode;
+        port command : Motion;
     }
     part def MissionManager {
         doc /* Receives missions and commands from shore and decides the operating
              * mode. */
-        port mode : ModePort;
+        port mode : Mode;
     }
 
     part def LogicalUSV {
@@ -73,8 +73,8 @@ package LogicalArchitecture {
         connect localisation.pose to controller.pose;
         connect chart.area to planner.area;
         connect traffic.tracks to avoidance.tracks;
-        connect planner.route to avoidance.routeIn;
-        connect avoidance.routeOut to controller.route;
+        connect planner.route to avoidance.planned;
+        connect avoidance.safe to controller.route;
         connect mission.mode to controller.mode;
     }
 
