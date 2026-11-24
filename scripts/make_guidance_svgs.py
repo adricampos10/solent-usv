@@ -10,6 +10,7 @@ written as <animate> value lists. All diagrams use a dark background.
     python3 scripts/make_guidance_svgs.py [OUTPUT_DIR]    # default docs/img
 """
 import math
+import re
 import sys
 from pathlib import Path
 
@@ -25,11 +26,21 @@ STYLE = f"""<style>
   .bg {{ fill: #1f1f1e; }}
 </style>"""
 
-ARROW = """<defs>
-  <marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-    <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-  </marker>
-</defs>"""
+def arrow_defs(body):
+    """One arrowhead marker per colour used in the body. Each marker has its
+    colour written out: context-stroke would be shorter, but Safari and
+    older browsers draw it invisible."""
+    colours = sorted(set(re.findall(r'url\(#a([0-9A-Fa-f]{6})\)', body)))
+    marks = "".join(
+        f'<marker id="a{c}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" '
+        f'orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#{c}" stroke-width="1.6" '
+        f'stroke-linecap="round" stroke-linejoin="round"/></marker>' for c in colours)
+    return f"<defs>{marks}</defs>"
+
+
+def mark(colour):
+    return f'marker-end="url(#a{colour.lstrip("#")})"'
+
 
 TEAL, BLUE, AMBER, CORAL, PURPLE, RED = "#1D9E75", "#378ADD", "#BA7517", "#D85A30", "#7F77DD", "#E24B4A"
 # Lighter shades of the same hues, for coloured text on the dark background.
@@ -38,7 +49,7 @@ TEAL_T, BLUE_T, CORAL_T, AMBER_T = "#5DCAA5", "#85B7EB", "#F0997B", "#EF9F27"
 
 def svg(w, h, body):
     return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}">\n'
-            f'{STYLE}\n{ARROW}\n<rect class="bg" width="{w}" height="{h}" rx="10"/>\n{body}\n</svg>\n')
+            f'{STYLE}\n{arrow_defs(body)}\n<rect class="bg" width="{w}" height="{h}" rx="10"/>\n{body}\n</svg>\n')
 
 
 def anim(attr, values, dur):
@@ -49,7 +60,7 @@ def anim(attr, values, dur):
 def line(frames, dur, color, width=2.5, dash=None, marker=True):
     """frames: list of (x1, y1, x2, y2)."""
     d = f' stroke-dasharray="{dash}"' if dash else ""
-    m = ' marker-end="url(#a)"' if marker else ""
+    m = f" {mark(color)}" if marker else ""
     a = "".join(anim(k, [f[i] for f in frames], dur) for i, k in enumerate(("x1", "y1", "x2", "y2")))
     return f'<line stroke="{color}" stroke-width="{width}" stroke-linecap="round"{d}{m}>{a}</line>'
 
@@ -204,18 +215,18 @@ def full_svg():
     body = [
         '<text x="20" y="30" class="h">The whole guidance law at the boat</text>',
         '<text x="20" y="50" class="m">Track 090°, 1 m/s stream setting south, boat at 3 m/s, 10 m off the line (not to scale)</text>',
-        f'<line x1="40" y1="110" x2="640" y2="110" class="grid" stroke-width="1.5" marker-end="url(#a)"/>',
+        f'<line x1="40" y1="110" x2="640" y2="110" class="grid" stroke-width="1.5" {mark("#5f5e5a")}/>',
         f'<circle cx="40" cy="110" r="4" fill="#888780"/><text x="36" y="98" class="m">A</text><text x="626" y="98" class="m">B</text>',
         '<text x="420" y="98" class="m">track A → B: 090° (atan2)</text>',
         f'<line x1="{bx}" y1="{by - 8}" x2="{bx}" y2="114" stroke="#888780" stroke-width="0.8" stroke-dasharray="3 3"/>',
         f'<text x="{bx - 22}" y="152" class="m">e</text>',
-        f'<line x1="150" y1="168" x2="150" y2="236" stroke="{BLUE}" stroke-width="2.5" marker-end="url(#a)"/>',
+        f'<line x1="150" y1="168" x2="150" y2="236" stroke="{BLUE}" stroke-width="2.5" {mark(BLUE)}/>',
         f'<text x="60" y="262" style="fill:{BLUE_T}">tidal stream 1 m/s</text>',
         f'<line x1="{bx}" y1="{by}" x2="480" y2="{by}" stroke="#888780" stroke-width="1" stroke-dasharray="6 5"/>',
         f'<text x="488" y="{by + 4}" class="m">along the track</text>',
-        f'<line x1="{bx}" y1="{by}" x2="{cx:.1f}" y2="{cy:.1f}" stroke="{CORAL}" stroke-width="2" marker-end="url(#a)"/>',
+        f'<line x1="{bx}" y1="{by}" x2="{cx:.1f}" y2="{cy:.1f}" stroke="{CORAL}" stroke-width="2" {mark(CORAL)}/>',
         f'<text x="{cx + 8:.1f}" y="{cy + 4:.1f}" style="fill:{CORAL_T}">course over ground</text>',
-        f'<line x1="{bx}" y1="{by}" x2="{hx:.1f}" y2="{hy:.1f}" stroke="{TEAL}" stroke-width="2.5" marker-end="url(#a)"/>',
+        f'<line x1="{bx}" y1="{by}" x2="{hx:.1f}" y2="{hy:.1f}" stroke="{TEAL}" stroke-width="2.5" {mark(TEAL)}/>',
         f'<text x="{hx + 8:.1f}" y="{hy:.1f}" style="fill:{TEAL_T}">heading 056.5°</text>',
         f'<path d="{arc(0, theta, 70)}" fill="none" stroke="{CORAL}" stroke-width="2.5"/>',
         f'<text x="{tx:.1f}" y="{ty + 5:.1f}" class="h" style="fill:{CORAL_T}">θ</text>',
