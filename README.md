@@ -72,6 +72,8 @@ The 3D view draws the WAM-V from its URDF on `/wamv/robot_description`; `foxglov
 ## The physics behind the navigation
 How the boat will hold a track across a tidal stream, which is what milestones 2 and 5 implement. It is the same reasoning as working out a course to steer on a chart, written as a guidance law.
 
+> **Try it:** [interactive version of these diagrams](https://adricampos10.github.io/solent-usv/guidance/), with sliders for the boat speed, the current, the distance off the track and the look-ahead.
+
 ### Heading is not course
 - **Heading (ψ)** is where the bow points. It is what the heading controller steers.
 - **Course over ground (χ)** is where the boat actually goes over the seabed.
@@ -124,6 +126,8 @@ Track 090° (due east), 1 m/s current setting south (pushing the boat to starboa
 | LOS (e = 10 m) | −14° | **056.5°** |
 
 The boat heads 056.5° and closes the line. Once on it, the LOS term drops to zero and the heading settles at **070.5°**: the boat crabs, but its course over ground is exactly 090°. If the forecast is off, the integral adds the missing degrees.
+
+You can change every value in this example in the [interactive version](https://adricampos10.github.io/solent-usv/guidance/).
 
 ### Each term on its own
 This is what milestone 5 compares in simulation, with recordings of each run to show the boat behaves as the trigonometry predicts:
