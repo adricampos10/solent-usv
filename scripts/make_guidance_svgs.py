@@ -185,7 +185,7 @@ def atan2_svg():
         t3.append("same answer: B is to the east" if dx > 1e-9 else "wrong half: Δy/Δx can't tell west from east")
     body = [
         '<text x="20" y="30" class="h">atan2: the right angle all the way round</text>',
-        '<text x="20" y="50" class="m">Direction from A to B, as a maths angle (0° = east, counter-clockwise)</text>',
+        '<text x="20" y="50" class="m">Maths angle: 0° = east, anticlockwise. Nautical bearing = 90° − this angle</text>',
         f'<circle cx="{cx}" cy="{cy}" r="{R + 8}" fill="none" class="grid" stroke-width="0.8"/>',
         f'<line x1="{cx - R - 20}" y1="{cy}" x2="{cx + R + 20}" y2="{cy}" class="grid" stroke-width="0.8"/>',
         f'<line x1="{cx}" y1="{cy - R - 20}" x2="{cx}" y2="{cy + R + 20}" class="grid" stroke-width="0.8"/>',
@@ -206,9 +206,14 @@ def atan2_svg():
 def full_svg():
     """Static map of the whole guidance law at one moment (the README's
     worked example): track 090°, 1 m/s stream setting south, U = 3 m/s,
-    boat 10 m off the line (not to scale), look-ahead 40 m."""
+    boat 10 m off the line (not to scale), look-ahead 40 m.
+    LOS sets the desired course (track − θ); the feedforward β is worked
+    out with the current across that course, not across the track."""
     bx, by, L = 200, 190, 260
-    theta, beta = math.atan(10 / 40), math.asin(1 / 3)
+    theta = math.atan(10 / 40)
+    beta = math.asin(1.0 * math.cos(theta) / 3)      # current across the desired course / U
+    chi_d = 90 - math.degrees(theta)
+    psi_d = chi_d - math.degrees(beta)
 
     def ray(angle, length):        # angle above the track direction, in radians
         return bx + length * math.cos(angle), by - length * math.sin(angle)
@@ -234,16 +239,16 @@ def full_svg():
         f'<line x1="{bx}" y1="{by}" x2="480" y2="{by}" stroke="#888780" stroke-width="1" stroke-dasharray="6 5"/>',
         f'<text x="488" y="{by + 4}" class="m">along the track</text>',
         f'<line x1="{bx}" y1="{by}" x2="{cx:.1f}" y2="{cy:.1f}" stroke="{CORAL}" stroke-width="2" {mark(CORAL)}/>',
-        f'<text x="{cx + 8:.1f}" y="{cy + 4:.1f}" style="fill:{CORAL_T}">course over ground</text>',
+        f'<text x="{cx + 8:.1f}" y="{cy + 4:.1f}" style="fill:{CORAL_T}">course {chi_d:05.1f}°</text>',
         f'<line x1="{bx}" y1="{by}" x2="{hx:.1f}" y2="{hy:.1f}" stroke="{TEAL}" stroke-width="2.5" {mark(TEAL)}/>',
-        f'<text x="{hx + 8:.1f}" y="{hy:.1f}" style="fill:{TEAL_T}">heading 056.5°</text>',
+        f'<text x="{hx + 8:.1f}" y="{hy:.1f}" style="fill:{TEAL_T}">heading {psi_d:05.1f}°</text>',
         f'<path d="{arc(0, theta, 70)}" fill="none" stroke="{CORAL}" stroke-width="2.5"/>',
         f'<text x="{tx:.1f}" y="{ty + 5:.1f}" class="h" style="fill:{CORAL_T}">θ</text>',
         f'<path d="{arc(theta, theta + beta, 110)}" fill="none" stroke="{TEAL}" stroke-width="2.5"/>',
         f'<text x="{gx:.1f}" y="{gy + 5:.1f}" class="h" style="fill:{TEAL_T}">β</text>',
         f'<circle cx="{bx}" cy="{by}" r="8" fill="{TEAL}"/><text x="{bx - 14}" y="{by + 24}" class="m">boat</text>',
-        '<text x="40" y="296">heading = 090° − β − θ = 090° − 19.5° − 14° = 056.5°</text>',
-        '<text x="40" y="320" class="m">θ = arctan(10 / 40) = 14°, back to the line  ·  β = arcsin(1 / 3) = 19.5°, into the current</text>',
+        f'<text x="40" y="296">course = 090° − θ = {chi_d:05.1f}°   ·   heading = course − β = {chi_d:05.1f}° − {math.degrees(beta):.1f}° = {psi_d:05.1f}°</text>',
+        f'<text x="40" y="320" class="m">θ = arctan(e / Δ) = {math.degrees(theta):.1f}°, back to the line  ·  β = arcsin(v⊥ / U) = {math.degrees(beta):.1f}°, v⊥ across the course</text>',
     ]
     return svg(680, 340, "\n".join(body))
 

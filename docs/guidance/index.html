@@ -38,10 +38,10 @@
 
 <section class="card">
   <h2>The whole guidance law at the boat</h2>
-  <p>heading = track angle − β − θ, with β = arcsin(v⊥ / U) into the current and θ = arctan(e / Δ) back to the line. Track 090°, boat below the line, stream setting south. Distances not to scale; angles are.</p>
+  <p>Line-of-sight guidance sets the course over ground, course = track − θ with θ = arctan(e / Δ), and the feedforward turns it into a heading, heading = course − β with β = arcsin(v⊥ / U), where v⊥ is the current across that course. Track 090°, boat below the line, stream setting south. Distances not to scale; angles are.</p>
   <svg id="law" viewBox="0 0 680 340" role="img" aria-label="Track, course over ground and heading at the boat"></svg>
   <div class="row"><label for="law-u">Boat speed through the water U</label><input id="law-u" type="range" min="1" max="5" step="0.1" value="3"><output id="law-u-o"></output></div>
-  <div class="row"><label for="law-c">Cross current v⊥</label><input id="law-c" type="range" min="0" max="4" step="0.1" value="1"><output id="law-c-o"></output></div>
+  <div class="row"><label for="law-c">Stream setting south</label><input id="law-c" type="range" min="0" max="4" step="0.1" value="1"><output id="law-c-o"></output></div>
   <div class="row"><label for="law-e">Distance off the track e</label><input id="law-e" type="range" min="0" max="80" step="1" value="10"><output id="law-e-o"></output></div>
   <div class="row"><label for="law-d">Look-ahead Δ</label><input id="law-d" type="range" min="10" max="80" step="1" value="40"><output id="law-d-o"></output></div>
   <div class="out" id="law-out"></div>
@@ -49,7 +49,7 @@
 
 <section class="card">
   <h2>atan2: the right angle all the way round</h2>
-  <p>The direction from A to B as a maths angle (0° = east, counter-clockwise). Plain arctan(Δy / Δx) loses the signs in the division, so it can't tell west from east.</p>
+  <p>The direction from A to B as a maths angle (0° = east, anticlockwise); the nautical bearing is 90° minus that angle, or directly atan2(Δeast, Δnorth). Plain arctan(Δy / Δx) loses the signs in the division, so it can't tell west from east.</p>
   <svg id="a2" viewBox="0 0 680 300" role="img" aria-label="atan2 compared with arctan"></svg>
   <div class="row"><label for="a2-a">Direction from A to B</label><input id="a2-a" type="range" min="0" max="359" step="1" value="210"><output id="a2-a-o"></output></div>
   <div class="out" id="a2-out"></div>
@@ -110,14 +110,14 @@ function drawLaw() {
   $('law-u-o').value = f1(U) + ' m/s'; $('law-c-o').value = f1(c) + ' m/s'; $('law-e-o').value = e + ' m'; $('law-d-o').value = D + ' m';
   defs(svg, ['grid', 'blue', 'coral', 'teal']);
   const ty = 120, bx = 200, by = ty + 30 + e * 1.4;          // boat below the line (not to scale)
-  const th = Math.atan(e / D), ok = c < U, b = ok ? Math.asin(c / U) : NaN;
+  const th = Math.atan(e / D), cross = c * Math.cos(th), ok = cross < U, b = ok ? Math.asin(cross / U) : NaN;   // current across the desired course
   let s = line(svg, 40, ty, 640, ty, 'grid', 1.5) + text(36, ty - 12, 'A', 'm') + text(626, ty - 12, 'B', 'm') + text(48, ty + 22, 'track A → B: 090°', 'm');
   s += `<line x1="${bx}" y1="${by - 8}" x2="${bx}" y2="${ty + 4}" stroke="${col('grid')}" stroke-width="0.8" stroke-dasharray="3 3"/>` + text(bx - 22, (by + ty) / 2 + 4, 'e', 'm');
   s += line(svg, 140, by - 34, 140, by + 30, 'blue') + text(40, by + 52, `stream ${f1(c)} m/s`, '', 'blue-t');
   s += `<line x1="${bx}" y1="${by}" x2="560" y2="${by}" stroke="${col('grid')}" stroke-dasharray="6 5"/>` + text(568, by + 4, 'along the track', 'm');
   const room = a => Math.min(230, (by - 24) / Math.max(Math.sin(a), 0.01));   // keep arrows inside the picture
   const L = room(th);
-  s += line(svg, bx, by, bx + L * Math.cos(-th), by + L * Math.sin(-th), 'coral', 2) + text(bx + L * Math.cos(-th) + 8, by + L * Math.sin(-th) + 4, 'course over ground', '', 'coral-t');
+  s += line(svg, bx, by, bx + L * Math.cos(-th), by + L * Math.sin(-th), 'coral', 2) + text(bx + L * Math.cos(-th) + 8, by + L * Math.sin(-th) + 4, `course ${brg(90 - deg(th))}°`, '', 'coral-t');
   if (e > 0) s += arc(bx, by, 70, -th, 0, 'coral') + text(bx + 80 * Math.cos(-th / 2), by + 80 * Math.sin(-th / 2) + 5, 'θ', 'h', 'coral-t');
   if (ok) {
     const h = th + b, L2 = room(h) - 20;
@@ -127,8 +127,8 @@ function drawLaw() {
   s += `<circle cx="${bx}" cy="${by}" r="8" fill="${col('teal')}"/>` + text(bx - 14, by + 24, 'boat', 'm');
   svg.innerHTML += s;
   $('law-out').innerHTML = ok
-    ? `θ = arctan(e / Δ) = ${f1(deg(th))}° &nbsp;·&nbsp; β = arcsin(v⊥ / U) = ${f1(deg(b))}° &nbsp;·&nbsp; heading = 090° − ${f1(deg(b))}° − ${f1(deg(th))}° = <b>${brg(90 - deg(th + b))}°</b>`
-    : `<span class="bad">v⊥ ≥ U: the stream is faster than the boat across the track, so arcsin doesn't exist and no heading holds the track.</span>`;
+    ? `θ = arctan(e / Δ) = ${f1(deg(th))}° → course ${brg(90 - deg(th))}° &nbsp;·&nbsp; v⊥ = ${cross.toFixed(2)} m/s across it &nbsp;·&nbsp; β = arcsin(v⊥ / U) = ${f1(deg(b))}° &nbsp;·&nbsp; heading = course − β = <b>${brg(90 - deg(th + b))}°</b>`
+    : `<span class="bad">v⊥ = ${cross.toFixed(2)} m/s ≥ U: the stream across the course is faster than the boat, so arcsin doesn't exist and no heading holds that course.</span>`;
 }
 
 // ---------- 2. atan2 ----------
@@ -147,7 +147,7 @@ function drawAtan2() {
   s += `<line x1="380" y1="118" x2="410" y2="118" stroke="${col('red')}" stroke-width="2" stroke-dasharray="5 4"/>` + text(420, 122, 'arctan(Δy / Δx)');
   svg.innerHTML += s;
   const same = dx > 1e-9;
-  $('a2-out').innerHTML = `Δx = ${dx.toFixed(2)}, Δy = ${dy.toFixed(2)} &nbsp;·&nbsp; atan2 = <b>${f0((deg(at2) + 360) % 360)}°</b> &nbsp;·&nbsp; arctan = ${f0(deg(at))}° ` +
+  $('a2-out').innerHTML = `Δx = ${dx.toFixed(2)}, Δy = ${dy.toFixed(2)} &nbsp;·&nbsp; atan2 = <b>${f0((deg(at2) + 360) % 360)}°</b> (bearing ${f0(((90 - deg(at2)) % 360 + 360) % 360).padStart(3, '0')}°) &nbsp;·&nbsp; arctan = ${f0(deg(at))}° ` +
     (same ? '&nbsp;·&nbsp; same answer: B is to the east' : '&nbsp;·&nbsp; <span class="bad">wrong half: Δy / Δx is the same for the opposite direction</span>');
 }
 
