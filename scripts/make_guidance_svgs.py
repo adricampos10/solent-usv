@@ -117,10 +117,10 @@ def arcsin_svg():
 
 
 def arctan_svg():
-    dur, D, k, bx, ty, r = 14, 40, 1.6, 110, 270, 34
+    dur, D, k, bx, ty, r = 14, 40, 1.6, 110, 290, 34
     errors = ping_pong(12.0, 120.0)
     px = bx + D * k
-    los_f, top_f, side_f, ahead_f, boat_y, arc_d, th_y, d_y, e_y, readout = ([] for _ in range(10))
+    los_f, top_f, side_f, ahead_f, boat_y, arc_d, th_y, d_y, e_y, readout, lin_f, lin_txt = ([] for _ in range(12))
     for e in errors:
         by = ty - e * k
         th = math.atan(e / D)
@@ -135,6 +135,12 @@ def arctan_svg():
         d_y.append(by - 8)
         e_y.append((by + ty) / 2 + 4)
         readout.append(f"e = {e:.0f} m  →  θ = arctan({e:.0f} / 40) = {math.degrees(th):.0f}°")
+        # A linear rule with the same slope as arctan near the track:
+        # atan(e/Δ) ≈ e/Δ rad, so 1/40 rad ≈ 1.4° per metre.
+        lin_deg = 1.4 * e
+        lin = math.radians(lin_deg)
+        lin_f.append((bx, by, bx + 52 * math.cos(lin), by + 52 * math.sin(lin)))
+        lin_txt.append(f"linear: 1.4° × {e:.0f} = {lin_deg:.0f}°" + ("  → backwards" if lin_deg > 90 else ""))
     body = [
         '<text x="20" y="30" class="h">arctan: back to the track (line-of-sight guidance)</text>',
         '<text x="20" y="50" class="m">The boat aims at a point on the track, always Δ = 40 m ahead</text>',
@@ -143,6 +149,7 @@ def arctan_svg():
         line(ahead_f, dur, "#888780", 1, "5 4", False),
         line(top_f, dur, BLUE, 1.8, None, False),
         line(side_f, dur, BLUE, 1.8, None, False),
+        line(lin_f, dur, RED, 2, "5 4"),
         line(los_f, dur, CORAL),
         f'<path fill="none" stroke="{AMBER}" stroke-width="2.5"><animate attributeName="d" values="{";".join(arc_d + arc_d[:1])}" dur="{dur}s" repeatCount="indefinite"/></path>',
         f'<text x="{bx + r + 8}" class="h" style="fill:{AMBER}">θ{anim("y", th_y, dur)}</text>',
@@ -154,11 +161,13 @@ def arctan_svg():
         f'<circle cx="430" cy="126" r="5" fill="{CORAL}"/><text x="450" y="130">aim point on the track</text>',
         f'<line x1="416" y1="152" x2="444" y2="152" stroke="{AMBER}" stroke-width="2.5"/><text x="450" y="156">θ: how much to turn</text>',
         f'<line x1="416" y1="178" x2="444" y2="178" stroke="#888780" stroke-width="1" stroke-dasharray="5 4"/><text x="450" y="182">straight ahead (0°)</text>',
-        texts(416, 232, readout, dur),
-        '<text x="416" y="262" class="m">Far from the track it turns a lot;</text>',
-        '<text x="416" y="280" class="m">close to it, hardly at all, so it joins smoothly</text>',
+        f'<line x1="416" y1="204" x2="444" y2="204" stroke="{RED}" stroke-width="2" stroke-dasharray="5 4"/><text x="450" y="208">linear rule: 1.4° per metre</text>',
+        texts(416, 244, readout, dur),
+        texts(416, 266, lin_txt, dur, cls=lambda s: "bad" if "backwards" in s else "m"),
+        '<text x="416" y="296" class="m">arctan never reaches 90°: the aim point is</text>',
+        '<text x="416" y="314" class="m">always ahead, so the boat never turns back</text>',
     ]
-    return svg(680, 310, "\n".join(body))
+    return svg(680, 336, "\n".join(body))
 
 
 def atan2_svg():
