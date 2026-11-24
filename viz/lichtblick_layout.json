@@ -114,11 +114,6 @@
         }
       }
     },
-    "RawMessages!gps": {
-      "topicPath": "/wamv/sensors/gps/gps/fix",
-      "diffEnabled": false,
-      "expansion": "all"
-    },
     "Plot!thrust": {
       "title": "Thrust (N)",
       "paths": [
@@ -152,6 +147,19 @@
       "showLegend": true,
       "followingViewWidth": 60,
       "isSynced": true
+    },
+    "map!solent": {
+      "center": {
+        "lat": 50.77,
+        "lon": -1.1
+      },
+      "zoomLevel": 12,
+      "layer": "map",
+      "followTopic": "/wamv/sensors/gps/gps/fix",
+      "disabledTopics": [],
+      "topicColors": {
+        "/wamv/sensors/gps/gps/fix": "#1D9E75"
+      }
     }
   },
   "globalVariables": {},
@@ -162,17 +170,17 @@
   "layout": {
     "first": "3D!usv",
     "second": {
-      "first": "Plot!thrust",
+      "first": "map!solent",
       "second": {
-        "first": "Plot!yaw",
-        "second": "RawMessages!gps",
-        "direction": "column",
+        "first": "Plot!thrust",
+        "second": "Plot!yaw",
+        "direction": "row",
         "splitPercentage": 50
       },
       "direction": "column",
-      "splitPercentage": 33
+      "splitPercentage": 62
     },
     "direction": "row",
-    "splitPercentage": 65
+    "splitPercentage": 50
   }
 }

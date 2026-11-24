@@ -60,14 +60,14 @@ The smoke test ([`scripts/smoke_test.py`](scripts/smoke_test.py)) applies 400 N 
 | R1.4 Turn | Yaw rate towards the weaker thruster | Pass: +28.2 °/s, drifting only 0.7 m |
 | R1.5 Visualisation | Pose visible in Lichtblick | Pass, checked by eye |
 
-To watch the boat, I run the simulation with `foxglove_bridge` and the Lichtblick web viewer with my layout (3D view following the boat, thrust, yaw rate and GNSS fix), then open the URL that `run_viewer.sh` prints:
+To watch the boat, I run the simulation with `foxglove_bridge` and the Lichtblick web viewer with my layout, then open the URL that `run_viewer.sh` prints. The layout has a 3D view following the boat, thrust and yaw rate plots, and a map panel that puts the GNSS position on an OpenStreetMap map of the Solent: the simulated world is georeferenced, so the boat appears off Portsmouth.
 ```bash
 scripts/run_sim_viz.sh        # terminal 1
 scripts/run_viewer.sh         # terminal 2
 ```
 The 3D view draws the WAM-V from its URDF on `/wamv/robot_description`; `foxglove_bridge` serves the hull meshes to the browser from their `package://` paths.
 
-![The WAM-V turning in Lichtblick, with thrust, yaw rate and GNSS fix](docs/img/milestone1_lichtblick.jpg)
+![The WAM-V in Lichtblick: 3D view, its GNSS position on a map of Spithead, thrust and yaw rate](docs/img/milestone1_lichtblick.jpg)
 
 ## The physics behind the navigation
 How the boat will hold a track across a tidal stream, which is what milestones 2 and 5 implement. It is the same reasoning as working out a course to steer on a chart, written as a guidance law.

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Starts the Lichtblick web viewer (open-source Foxglove) with my layout: the
-# boat in 3D, yaw rate and thrust, and the GNSS fix. Run it next to
+# boat in 3D, its GNSS position on a map of the Solent, yaw rate and thrust.
+# Run it next to
 # scripts/run_sim_viz.sh and open the URL it prints. Stop it with Ctrl-C.
 #
 # Usage (from the repo root):
