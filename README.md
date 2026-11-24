@@ -19,7 +19,7 @@ I write everything in Python first. Once the whole demo works, I may port the gu
 
 ## Roadmap
 1. **VRX in Docker** *(done, see [Milestone 1](#milestone-1-vrx-in-docker))*. The VRX `jazzy` branch (ROS 2 Jazzy + Gazebo Harmonic) runs headless in Docker on my Mac, with a WAM-V that I can drive and watch in Lichtblick through `foxglove_bridge`.
-2. **Guidance and control.** LOS guidance between waypoints and heading and speed PID loops that ask for a surge force and a yaw moment, in Python and unit-tested with pytest. A separate actuator allocation layer turns that force and moment into left and right thrust, within each thruster's limits (in VRX, about 2350 N ahead but only 1000 N astern); it is the only part that knows which boat it drives. The boat follows a straight track and a dog-leg in calm water. The first scenarios and the CI start here.
+2. **Guidance and control.** LOS guidance between waypoints and heading and speed PID loops that ask for a surge force and a yaw moment, in Python and unit-tested with pytest. A separate actuator allocation layer turns that force and moment into left and right thrust, within each thruster's limits (in VRX, about 2350 N ahead but only 1000 N astern); it is the only part that knows which boat it drives. The boat follows a straight track and a dog-leg in calm water, and I record the runs to show it joins the track the way the LOS geometry below predicts. The first scenarios and the CI start here.
 3. **Chart and A\* planner.** I download an EMODnet DTM tile for the Solent and turn it into a cost grid where depth < draft + margin is forbidden. My own A\* plans a route across it, for example from Portsmouth to Cowes without touching the shallows.
 4. **Tides.** I add the predicted tide height to the charted depth (both referenced to chart datum, roughly LAT), so the grid changes with time. A scenario checks that the same route passes at high water and fails at low water.
 5. **Tidal currents.** VRX simulates wind and waves but not current, and in the Solent the tidal stream often matters more than the wind. I generate my own current field, with strength and direction following the tide (flood, ebb, springs and neaps), and a Python node applies it to the boat through Gazebo's wrench topic. Gazebo's water doesn't move, so the node applies the drag the hull would feel from its speed relative to the moving water, not a fixed push. The compensation goes in the guidance, not in the forces: a uniform current doesn't push the boat, it carries it, so what has to change is the heading. Then I compare three ways of crossing the same current:
@@ -94,7 +94,11 @@ With no current they are the same. With a cross current the boat crabs: it point
 
 Angles are nautical (clockwise, positive to starboard), so both minus signs mean the same thing: steer into the current and back towards the track. Each term fixes a different problem.
 
-**1. Track angle.** With no current and the boat on the line, pointing along the leg is enough.
+![The guidance law at the boat: track angle, θ back to the line and β into the current add up to the heading](docs/img/guidance_law.svg)
+
+**1. Track angle.** With no current and the boat on the line, pointing along the leg is enough. I work it out from the two waypoints with atan2(Δy, Δx), not arctan(Δy/Δx): the division loses the signs, so plain arctan can't tell a leg heading north-east from one heading south-west.
+
+![atan2 compared with arctan as the direction turns all the way round](docs/img/guidance_atan2.svg)
 
 **2. Feedforward: the course to steer.** It corrects for the current *before* any error appears, using the predicted tidal stream. To stay on the line, the sideways part of the boat's velocity through the water has to cancel the current across the track. Pointing an angle β into the current gives a sideways velocity of U·sin β, so:
 ```math
@@ -102,7 +106,11 @@ U \sin\beta = v_\perp \quad\Rightarrow\quad \beta = \arcsin\!\left(\frac{v_\perp
 ```
 This is the tidal vector triangle from passage planning. At U = 3 m/s (about 6 knots) in a 1 m/s (about 2 knots) cross current, β = asin(1/3) ≈ 19.5° into the current. Speed over the ground along the track becomes U·cos β plus the along-track part of the current, and the speed controller deals with that. If the cross current is as fast as the boat (v<sub>⊥</sub> ≥ U), no heading can hold the track: the code has to detect it and flag it, and the planner should avoid that leg at that state of the tide. The term is only as good as the prediction: if the real stream is 1.2 m/s instead of 1.0, the boat needs 23.6° and gets 19.5°.
 
-**3. Line-of-sight (LOS) guidance.** The feedforward keeps the boat *parallel* to the track; LOS brings it back onto it. The boat aims at a point a distance Δ ahead on the track, which gives a correction of atan(e/Δ) towards the line. At e = 10 m and Δ = 40 m that is 14°, and it fades smoothly to zero as the boat reaches the line. Δ is the main tuning knob: short converges fast but can oscillate, long is smooth but slow. A usual starting point is 2 to 5 boat lengths, 10 to 25 m for the WAM-V.
+![arcsin: the angle into the current grows with the cross current, until the current is faster than the boat](docs/img/guidance_arcsin.svg)
+
+**3. Line-of-sight (LOS) guidance.** The feedforward keeps the boat *parallel* to the track; LOS brings it back onto it. The boat aims at a point a distance Δ ahead on the track. The angle θ between straight ahead along the track and the line to that point is the correction: the two legs of the triangle are Δ and e, so θ = atan(e/Δ) towards the line. At e = 10 m and Δ = 40 m that is 14°, and it fades smoothly to zero as the boat reaches the line. Δ is the main tuning knob: short converges fast but can oscillate, long is smooth but slow. A usual starting point is 2 to 5 boat lengths, 10 to 25 m for the WAM-V.
+
+![arctan: the boat aims at a point on the track 40 m ahead; the further off the track, the bigger the turn θ](docs/img/guidance_arctan.svg)
 
 **4. Integral LOS (ILOS).** With a forecast error of 4°, the boat settles off the track at the distance where the LOS correction makes up those 4°, and stays there. The integral of the cross-track error keeps growing while that offset lasts, until it covers the missing angle and the error goes back to zero. It mops up any steady error: a wrong tidal forecast, leeway from the wind, model errors. Its risk is windup: after a large error, such as a turn at a waypoint or a collision-avoidance manoeuvre, it can overshoot the line. So I only integrate close to the track, clamp the integral, and reset it on each new leg.
 
@@ -118,7 +126,7 @@ Track 090° (due east), 1 m/s current setting south (pushing the boat to starboa
 The boat heads 056.5° and closes the line. Once on it, the LOS term drops to zero and the heading settles at **070.5°**: the boat crabs, but its course over ground is exactly 090°. If the forecast is off, the integral adds the missing degrees.
 
 ### Each term on its own
-This is what milestone 5 compares in simulation:
+This is what milestone 5 compares in simulation, with recordings of each run to show the boat behaves as the trigonometry predicts:
 
 | Method | In a cross current |
 |---|---|
